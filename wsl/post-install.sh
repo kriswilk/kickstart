@@ -17,10 +17,10 @@ git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ${ZSH_CUSTOM:-$
 sudo apt install -y git
 
 # neovim (stable + personal config)
-git clone https://github.com/kriswilk/config-nvim.git $HOME/.config/nvim/
-wget https://github.com/neovim/neovim/releases/download/stable/nvim-linux64.deb
-sudo apt install -y ./nvim-linux64.deb
-rm nvim-linux64.deb
+sudo apt install -y libfuse2
+curl -fsSL https://github.com/neovim/neovim/releases/download/stable/nvim.appimage --create-dirs -o ~/.local/bin/nvim
+chmod u+x ~/.local/bin/nvim
+git clone https://github.com/kriswilk/config-nvim.git ~/.config/nvim/
 
 # direnv
 curl -sfL https://direnv.net/install.sh | bash
