@@ -1,35 +1,30 @@
 #!/bin/bash
 
-# local bin directory
-mkdir -p ~/.local/bin
-export PATH="$HOME/.local/bin:$PATH"
-
 # PPAs, updates
 sudo add-apt-repository -y ppa:git-core/ppa
 sudo apt update && sudo apt upgrade -y
 
-# zsh, oh-my-zsh, p10k
-sudo apt install -y zsh
-sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
-git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k
-
-# git
-sudo apt install -y git
-
-# neovim (stable + personal config)
-sudo apt install -y libfuse2
-curl -fsSL https://github.com/neovim/neovim/releases/download/stable/nvim.appimage --create-dirs -o ~/.local/bin/nvim
-chmod u+x ~/.local/bin/nvim
-git clone https://github.com/kriswilk/config-nvim.git ~/.config/nvim/
+# starship
+curl -sS https://starship.rs/install.sh | sh
+mkdir ~/.config
+starship preset plain-text-symbols -o ~/.config/starship.toml
+#
+echo '' >> ~/.bashrc
+echo 'eval "$(starship init bash)"' >> ~/.bashrc
 
 # direnv
-curl -sfL https://direnv.net/install.sh | bash
-
-# pip, venv, pipx
-sudo apt install -y python3-pip python3-venv
-python3 -m pip install --user pipx
-python3 -m pipx ensurepath
+curl -qfsSL https://github.com/direnv/direnv/releases/download/v2.33.0/direnv.linux-amd64 -o direnv
+chmod +x direnv
+sudo mv direnv /usr/local/bin
+#
+echo '' >> ~/.bashrc
+echo 'eval "$(direnv hook bash)"' >> ~/.bashrc
 
 # pyenv (w/ build dependencies)
+sudo apt install -y build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev curl libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev
 curl https://pyenv.run | bash
-sudo apt install -y build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev curl libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev llvm
+# 
+echo '' >> ~/.bashrc
+echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bashrc
+echo 'command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bashrc
+echo 'eval "$(pyenv init -)"' >> ~/.bashrc
