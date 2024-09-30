@@ -2,6 +2,6 @@
 Scripts and dotfiles to personalize fresh linux installs.
 
 # ubuntu-wsl.sh
-Installs starship, direnv, and pyenv.
+Installs starship & uv.
 
 `curl https://raw.githubusercontent.com/kriswilk/config-linux/main/ubuntu-wsl.sh | bash`
