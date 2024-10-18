@@ -1,3 +1,7 @@
+# config-wsl
+
+A minimal setup script for WSL, including rust, uv, and starship.
+
 ## Usage
 
 On a fresh WSL instance, run:
