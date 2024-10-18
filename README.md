@@ -1,7 +1,5 @@
-# config-linux
-Scripts and dotfiles to personalize fresh linux installs.
+## Usage
 
-# ubuntu-wsl.sh
-Installs starship & uv.
+On a fresh WSL instance, run:
 
-`curl https://raw.githubusercontent.com/kriswilk/config-linux/main/ubuntu-wsl.sh | bash`
+`curl https://raw.githubusercontent.com/kriswilk/config-wsl/main/config-wsl.sh | bash`
