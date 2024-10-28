@@ -1,5 +1,3 @@
-# wsl
-
 A minimal setup script for WSL, including rust, uv, and starship.
 
 ## Usage
