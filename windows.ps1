@@ -1,4 +1,8 @@
-#Requires -RunAsAdministrator
+if (!(New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator))
+{
+    Write-Output "You need elevated privileges to run this script."
+    exit
+}
 
 $standardPackages = @(
     # core
