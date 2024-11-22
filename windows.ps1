@@ -10,6 +10,7 @@ $standardPackages = @(
     "Git.Git",
     "AutoHotkey.AutoHotkey",
     "Microsoft.OneDrive",
+    "Bitwarden.Bitwarden",
 
     # browser
     "Google.Chrome",
