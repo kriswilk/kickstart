@@ -25,9 +25,6 @@ $standardPackages = @(
     "Microsoft.Office",
     "Adobe.CreativeCloud",
 
-    # networking
-    "Initex.YogaDNS", #........................ apply license, run as service
-
     # utility
     "Microsoft.PowerToys",
     "Microsoft.Sysinternals",
