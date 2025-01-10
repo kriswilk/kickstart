@@ -45,6 +45,7 @@ $optionalPackages = @(
     "VideoLAN.VLC",
     "HandBrake.HandBrake",
     "MoritzBunkus.MKVToolNix",
+    "Gyan.FFmpeg",
 
     # photo/illustration
     "GIMP.GIMP",
