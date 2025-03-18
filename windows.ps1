@@ -40,6 +40,7 @@ $optionalPackages = @(
 
     # audio
     "Audacity.Audacity",
+    "FlorianHeidenreich.Mp3tag",
 
     # video
     "VideoLAN.VLC",
