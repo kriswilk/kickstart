@@ -24,6 +24,8 @@ $standardPackages = @(
     # suite
     "Microsoft.Office",
     "Adobe.CreativeCloud",
+    "TheDocumentFoundation.LibreOffice",
+    "TheDocumentFoundation.LibreOffice.HelpPack",
 
     # utility
     "Microsoft.PowerToys",
