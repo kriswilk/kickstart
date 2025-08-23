@@ -13,7 +13,7 @@ $standardPackages = @(
     "Bitwarden.Bitwarden",
 
     # browser
-    "Google.Chrome",
+    "Mozilla.Firefox",
 
     # font
     "SourceFoundry.HackFonts",
