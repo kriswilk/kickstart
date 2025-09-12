@@ -30,6 +30,7 @@ $standardPackages = @(
     # utility
     "Microsoft.PowerToys",
     "Microsoft.Sysinternals",
+    "RustDesk.RustDesk",
     "SumatraPDF.SumatraPDF",
     "ScooterSoftware.BeyondCompare.5", #....... apply license
     "FineprintSoftware.FinePrint", #........... apply license, icon(s) in wrong start menu
