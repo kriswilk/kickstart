@@ -4,7 +4,7 @@ if (!(New-Object Security.Principal.WindowsPrincipal([Security.Principal.Windows
     exit
 }
 
-$standardPackages = @(
+$packages = @(
     # core
     "7zip.7zip",
     "Git.Git",
@@ -27,6 +27,10 @@ $standardPackages = @(
     "TheDocumentFoundation.LibreOffice",
     "TheDocumentFoundation.LibreOffice.HelpPack",
 
+    # networking
+    "Famatech.AdvancedIPScanner",
+    "tailscale.tailscale",
+
     # utility
     "Microsoft.PowerToys",
     "Microsoft.Sysinternals",
@@ -35,10 +39,6 @@ $standardPackages = @(
     "ScooterSoftware.BeyondCompare.5", #....... apply license
     "FineprintSoftware.FinePrint", #........... apply license, icon(s) in wrong start menu
     "den4b.ReNamer", #......................... apply license
-"")
-
-$optionalPackages = @(
-    # utility
     "REALiX.HWiNFO",
 
     # audio
@@ -72,17 +72,10 @@ $optionalPackages = @(
     # programming
     "Microsoft.VisualStudioCode",
     "WerWolv.ImHex",
-
-    # networking
-    "Famatech.AdvancedIPScanner",
-    "tailscale.tailscale",
-    "WiresharkFoundation.Wireshark",
-    "WinSCP.WinSCP",
-
+    
     # storage
     "Rclone.Rclone",
     "Rufus.Rufus",
-    "PowerSoftware.AnyBurn",
     "AntibodySoftware.WizTree",
     "CrystalDewWorld.CrystalDiskInfo",
     "CrystalDewWorld.CrystalDiskMark",
@@ -92,23 +85,11 @@ $optionalPackages = @(
     "Microsoft.OpenJDK.21" #................... for minecraft / prism launcher
 "")
 
-# STANDARD PACKAGES
-if ((Read-Host "Install Standard Packages? (y/n)") -eq "y")
-{
-    $standardPackages | ForEach-Object { if ($_) { winget install --scope machine -e --id $_ }}
-    
-    # no machine scope
-    winget install -e --id "Microsoft.WindowsTerminal"
-}
+$packages | ForEach-Object { if ($_) { winget install --scope machine -e --id $_ }}
 
-# OPTIONAL PACKAGES
-if ((Read-Host "Install Optional Packages? (y/n)") -eq "y")
-{
-    $optionalPackages | ForEach-Object { if ($_) { winget install --scope machine -e --id $_ }}
-    
-    # no machine scope
-    winget install -e --id "PrismLauncher.PrismLauncher"
-}
+# no machine scope
+winget install -e --id "Microsoft.WindowsTerminal"
+winget install -e --id "PrismLauncher.PrismLauncher"
 
 # SERVARR PACKAGES
 if ((Read-Host "Install Servarr Packages? (y/n)") -eq "y")
