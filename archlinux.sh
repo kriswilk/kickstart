@@ -1,21 +1,24 @@
 #!/bin/bash
 
 ## PREREQUISITES ##
-# Boot mode
-if [[ $(cat /sys/firmware/efi/fw_platform_size) != 64 ]]; then
-  echo "ERROR: UEFI test failed."
+
+if ! cat /sys/firmware/efi/fw_platform_size | grep "64" &> /dev/null; then
+  echo "ERROR: Not a UEFI system."
   exit 1
 fi
-# Network connectivity
-if ! ping -c 1 1.1.1.1 >/dev/null 2>&1; then
-  echo "ERROR: Network connectivity test failed."
+
+if ! ping -c 1 ping.archlinux.org &> /dev/null; then
+  echo "ERROR: No network connectivity."
   exit 1
 fi
-# System clock
-# WIP...
-# check output of timedatectl
+
+if ! timedatectl show | grep "NTPSynchronized=yes" &> /dev/null; then
+  echo "ERROR: Clock requires synchronization."
+  exit 1
+fi
 
 ## PARTITIONING ##
+
 # EFI, Linux swap, Linux filesystem
 sgdisk $1 \
        -Z \
