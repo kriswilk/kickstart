@@ -1,22 +1,17 @@
 #!/bin/bash
 
 ## HELPERS ##
+function fail() { echo "$1"; exit 1; }
 
-function fail() {
-  echo "$1"
-  exit 1
-}
+## VARIABLES ##
+disk=$1
+disk_path="/dev/${disk}"
+crypt="archlinux"
+crypt_map="/dev/mapper/${crypt}"
 
-## INPUT ARGUMENTS ##
-
-target_disk=$1
-
-## PRE-FLIGHT CHECKS ##
-
-if [ ! $target_disk ]; then
-  fail "USAGE: ./archlinux.sh /dev/<disk>"
-elif ! ls $target_disk &> /dev/null; then
-  fail "ERROR: The specified disk does not exist."
+## PRE-FLIGHT ##
+if [ ! -e $disk_path ]; then
+  fail "ERROR: The specified disk does not exist. USAGE: ./archlinux.sh <disk> (eg. sda, nvme0n1, ...)"
 elif ! cat /sys/firmware/efi/fw_platform_size | grep "64" &> /dev/null; then
   fail "ERROR: Not a UEFI system."
 elif ! ping -c 1 ping.archlinux.org &> /dev/null; then
@@ -25,25 +20,33 @@ elif ! timedatectl show | grep "NTPSynchronized=yes" &> /dev/null; then
   fail "ERROR: Clock requires synchronization."  
 fi
 
-## CONFIRMATION ##
+## CONFIRM ##
+read -p "WARNING: Disk $disk_path will be completely erased. Proceed? (y/N): " confirm && [[ $confirm == [yY] ]] || exit 1
 
-read -p "WARNING: Disk $target_disk will be completely erased. Proceed? (y/N): " confirm && [[ $confirm == [yY] ]] || exit 1
+## PARTITION ##
+# 1 GB EFI, remainder Linux filesystem
+sgdisk $disk_path -Z -n 1:0:1G -t 1:ef00 -N 2 -t 2:8300
 
-## PARTITIONING ##
+if [[ -e "${disk_path}1" && -e "${disk_path}2" ]]; then
+  part_efi="${disk_path}1"
+  part_btrfs="${disk_path}2"
+elif [[ -e "${disk_path}p1" && -e "${disk_path}p2" ]]; then
+  part_efi="${disk_path}p1"
+  part_btrfs="${disk_path}p2"
+else
+  fail "ERROR: Disk partition(s) missing."
+fi
 
-# 1 GB for EFI and the remainder for BTRFS
-sgdisk $target_disk -Z -n 1:0:1G -t 1:ef00 -N 2 -t 2:8300
-
-## FORMAT / ENCRYPT ##
+## ENCRYPTION ##
+cryptsetup luksFormat $part_btrfs
+cryptsetup luksOpen $part_btrfs $crypt
 
 # EFI
-mkfs.fat -F 32 /dev/sda1
+mkfs.fat -F 32 $part_efi
 # BTRFS (encrypted)
-cryptsetup luksFormat /dev/sda2
-cryptsetup luksOpen /dev/sda2 archlinux
-mkfs.btrfs /dev/mapper/archlinux
+mkfs.btrfs $crypt_map
 
-mount /dev/mapper/archlinux /mnt
+mount $crypt_map /mnt
 btrfs subvolume create /mnt/@
 btrfs subvolume create /mnt/@home
 btrfs subvolume create /mnt/@snapshots
@@ -54,29 +57,32 @@ btrfs subvolume create /mnt/@var_tmp
 umount /mnt
 
 # MOUNT
-mount -o compress=zstd:1,subvol=@ /dev/mapper/archlinux /mnt
+mkdir -p /mnt/efi
+mount $part_efi /mnt/efi
 
 mkdir -p /mnt/home
-mount -o compress=zstd:1,subvol=@home /dev/mapper/archlinux /mnt/home
-
 mkdir -p /mnt/.snapshots
-mount -o compress=zstd:1,subvol=@snapshots /dev/mapper/archlinux /mnt/.snapshots
-
 mkdir -p /mnt/swap
-mount -o compress=zstd:1,subvol=@swap /dev/mapper/archlinux /mnt/swap
+mkdir -p /mnt/var/cache
+mkdir -p /mnt/var/log
+mkdir -p /mnt/var/tmp
+
+mount -o compress=zstd:1,subvol=@ $crypt_map /mnt
+
+mount -o compress=zstd:1,subvol=@home $crypt_map /mnt/home
+
+mount -o compress=zstd:1,subvol=@snapshots $crypt_map /mnt/.snapshots
+
+mount -o compress=zstd:1,subvol=@swap $crypt_map /mnt/swap
 btrfs filesystem mkswapfile --size 16g --uuid clear /mnt/swap/swapfile
 
-mkdir -p /mnt/var/cache
-mount -o compress=zstd:1,subvol=@var_cache /dev/mapper/archlinux /mnt/var/cache
+mount -o compress=zstd:1,subvol=@var_cache $crypt_map /mnt/var/cache
 
-mkdir -p /mnt/var/log
-mount -o compress=zstd:1,subvol=@var_log /dev/mapper/archlinux /mnt/var/log
+mount -o compress=zstd:1,subvol=@var_log $crypt_map /mnt/var/log
 
-mkdir -p /mnt/var/tmp
-mount -o compress=zstd:1,subvol=@var_tmp /dev/mapper/archlinux /mnt/var/tmp
+mount -o compress=zstd:1,subvol=@var_tmp $crypt_map /mnt/var/tmp
 
-mkdir -p /mnt/efi
-mount /dev/sda1 /mnt/efi
+
 
 
 
