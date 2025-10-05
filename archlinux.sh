@@ -1,26 +1,38 @@
 #!/bin/bash
 
-## PREREQUISITES ##
+## HELPERS ##
 
-if ! cat /sys/firmware/efi/fw_platform_size | grep "64" &> /dev/null; then
-  echo "ERROR: Not a UEFI system."
+function fail() {
+  echo "$1"
   exit 1
+}
+
+## INPUT ARGUMENTS ##
+
+target_disk=$1
+
+## PRE-FLIGHT CHECKS ##
+
+if [ ! $target_disk ]; then
+  fail "USAGE: ./archlinux.sh /dev/<disk>"
+elif ! ls $target_disk &> /dev/null; then
+  fail "ERROR: The specified disk does not exist."
+elif ! cat /sys/firmware/efi/fw_platform_size | grep "64" &> /dev/null; then
+  fail "ERROR: Not a UEFI system."
+elif ! ping -c 1 ping.archlinux.org &> /dev/null; then
+  fail "ERROR: No network connectivity."
+elif ! timedatectl show | grep "NTPSynchronized=yes" &> /dev/null; then
+  fail "ERROR: Clock requires synchronization."  
 fi
 
-if ! ping -c 1 ping.archlinux.org &> /dev/null; then
-  echo "ERROR: No network connectivity."
-  exit 1
-fi
+## CONFIRMATION ##
 
-if ! timedatectl show | grep "NTPSynchronized=yes" &> /dev/null; then
-  echo "ERROR: Clock requires synchronization."
-  exit 1
-fi
+read -p "WARNING: Disk $target_disk will be completely erased. Proceed? (y/N): " confirm && [[ $confirm == [yY] ]] || exit 1
 
 ## PARTITIONING ##
 
-# 1 GB EFI partition, remainder as Linux filesystem
-sgdisk $1 -Z -n 1:0:1G -t 1:ef00 -N 2 -t 2:8300
+# 1 GB for EFI and the remainder for BTRFS
+sgdisk $target_disk -Z -n 1:0:1G -t 1:ef00 -N 2 -t 2:8300
 
 ## FORMAT / ENCRYPT ##
 
@@ -65,6 +77,10 @@ mount -o compress=zstd:1,subvol=@var_tmp /dev/mapper/archlinux /mnt/var/tmp
 
 mkdir -p /mnt/efi
 mount /dev/sda1 /mnt/efi
+
+
+
+
 
 
 btrfs subvolume create /root/swap # create the subvolume
