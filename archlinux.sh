@@ -3,15 +3,16 @@
 ## HELPERS ##
 function fail() { echo "$1"; exit 1; }
 
-## VARIABLES ##
-disk=$1
+## TARGETS ##
+hostname=$1
+disk=$2
 disk_path="/dev/${disk}"
 crypt="archlinux"
-crypt_map="/dev/mapper/${crypt}"
+crypt_path="/dev/mapper/${crypt}"
 
 ## PRE-FLIGHT ##
 if [ ! -e $disk_path ]; then
-  fail "ERROR: The specified disk does not exist. USAGE: ./archlinux.sh <disk> (eg. sda, nvme0n1, ...)"
+  fail "ERROR: Disk $disk_path does not exist. USAGE: ./archlinux.sh <hostname> <disk>"
 elif ! cat /sys/firmware/efi/fw_platform_size | grep "64" &> /dev/null; then
   fail "ERROR: Not a UEFI system."
 elif ! ping -c 1 ping.archlinux.org &> /dev/null; then
@@ -37,52 +38,34 @@ else
   fail "ERROR: Disk partition(s) missing."
 fi
 
-## ENCRYPTION ##
+## ENCRYPT ##
 cryptsetup luksFormat $part_btrfs
 cryptsetup luksOpen $part_btrfs $crypt
 
-# EFI
+## FORMAT ##
 mkfs.fat -F 32 $part_efi
-# BTRFS (encrypted)
-mkfs.btrfs $crypt_map
+mkfs.btrfs $crypt_path
 
-mount $crypt_map /mnt
-btrfs subvolume create /mnt/@
-btrfs subvolume create /mnt/@home
-btrfs subvolume create /mnt/@snapshots
-btrfs subvolume create /mnt/@swap
-btrfs subvolume create /mnt/@var_cache
-btrfs subvolume create /mnt/@var_log
-btrfs subvolume create /mnt/@var_tmp
+## CREATE SUBVOLUMES ##
+cd /mnt
+mount $crypt_path /mnt
+btrfs subvolume create @ @home @snapshots @swap @var_cache @var_log @var_tmp
 umount /mnt
 
-# MOUNT
-mkdir -p /mnt/efi
+## MOUNT ##
+cd /mnt
+mkdir -p efi home .snapshots swap var/cache var/log var/tmp
 mount $part_efi /mnt/efi
+mount -o compress=zstd:1,subvol=@ $crypt_path /mnt
+mount -o compress=zstd:1,subvol=@home $crypt_path /mnt/home
+mount -o compress=zstd:1,subvol=@snapshots $crypt_path /mnt/.snapshots
+mount -o compress=zstd:1,subvol=@swap $crypt_path /mnt/swap
+mount -o compress=zstd:1,subvol=@var_cache $crypt_path /mnt/var/cache
+mount -o compress=zstd:1,subvol=@var_log $crypt_path /mnt/var/log
+mount -o compress=zstd:1,subvol=@var_tmp $crypt_path /mnt/var/tmp
 
-mkdir -p /mnt/home
-mkdir -p /mnt/.snapshots
-mkdir -p /mnt/swap
-mkdir -p /mnt/var/cache
-mkdir -p /mnt/var/log
-mkdir -p /mnt/var/tmp
-
-mount -o compress=zstd:1,subvol=@ $crypt_map /mnt
-
-mount -o compress=zstd:1,subvol=@home $crypt_map /mnt/home
-
-mount -o compress=zstd:1,subvol=@snapshots $crypt_map /mnt/.snapshots
-
-mount -o compress=zstd:1,subvol=@swap $crypt_map /mnt/swap
+## SWAP FILE ##
 btrfs filesystem mkswapfile --size 16g --uuid clear /mnt/swap/swapfile
-
-mount -o compress=zstd:1,subvol=@var_cache $crypt_map /mnt/var/cache
-
-mount -o compress=zstd:1,subvol=@var_log $crypt_map /mnt/var/log
-
-mount -o compress=zstd:1,subvol=@var_tmp $crypt_map /mnt/var/tmp
-
-
 
 
 
@@ -100,3 +83,43 @@ dd if=/dev/zero of=/swap/file bs=4096 count=16777216 # write out 64GB of zeroed 
 mkswap /swap/file                 # write swap signature to the file
 swapon -a                         # turn it on!
 free                              # display available memory and swap
+
+
+## MIRRORS ##
+
+## INSTALL ESSENTIAL PACKAGES ##
+
+## FSTAB ##
+genfstab -U /mnt >> /mnt/etc/fstab
+
+## CHROOT ##
+arch-chroot /mnt
+
+## TIME ##
+ln -sf /usr/share/zoneinfo/America/Toronto /etc/localtime
+hwclock --systohc
+
+## LOCALE ##
+## WIP: edit /etc/locale.gen and uncomment relevant locales, then run "locale-gen"
+locale-gen
+echo "LANG=en_US.UTF-8" >> /etc/locale.conf
+
+## HOSTNAME ##
+## WIP: prompt for hostname
+echo $hostname >> /etc/hostname
+
+## NETWORK CONFIG ##
+## WIP
+
+## Initramfs
+
+## ROOT PASSWORD ##
+passwd
+
+## BOOT LOADER ##
+
+## REBOOT ##
+exit
+umount -R /mnt
+read -p "Ready to reboot. Proceed? (y/N): " confirm && [[ $confirm == [yY] ]] || exit 1
+reboot
