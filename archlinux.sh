@@ -81,37 +81,37 @@ swapon /mnt/swap/swapfile
 
 ## MIRRORS ##
 echo "CONFIGURING MIRRORS..."
-reflector --country CA \
-          --delay 1 \
-          --fastest 10 \
-          --sort rate \
-          --save /etc/pacman.d/mirrorlist \
-          --verbose
+reflector --country CA --delay 1 --fastest 10 --sort rate --save /etc/pacman.d/mirrorlist --verbose
 
 ## INSTALL ESSENTIAL PACKAGES ##
-pacman -Syy
-pacstrap /mnt base linux linux-firmware nano vim intel-ucode
+## WIP: update packages first?
+pacstrap -K /mnt base linux \
+                 intel-ucode amd-ucode \                 
+                 # userspace utils for filesystems:
+                 # raid/lvm:
+                 # firmware: linux-firmware linux-firmware-marvell \
+                 
+                 # other packages: vim nano
+## WIP: will amd/intel microcode coexist??
 
 ## FSTAB ##
 genfstab -U /mnt >> /mnt/etc/fstab
 ## WIP: need to remove subvolid from fstab?? or is it not put in there anymore?
 
-
 ## CHROOT ##
 arch-chroot /mnt
 
 ## TIME ##
-ln -sf /usr/share/zoneinfo/America/Toronto /etc/localtime
-hwclock --systohc
+arch-chroot /mnt ln -sf /usr/share/zoneinfo/America/Toronto /etc/localtime
+arch-chroot /mnt hwclock --systohc
 
 ## LOCALE ##
-## WIP: edit /etc/locale.gen and uncomment relevant locales, then run "locale-gen"
-locale-gen
-echo "LANG=en_US.UTF-8" >> /etc/locale.conf
+arch-chroot /mnt echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen
+arch-chroot /mnt locale-gen
+arch-chroot /mnt echo "LANG=en_US.UTF-8" > /etc/locale.conf
 
 ## HOSTNAME ##
-## WIP: prompt for hostname
-echo $hostname >> /etc/hostname
+arch-chroot /mnt echo $hostname > /etc/hostname
 
 ## NETWORK CONFIG ##
 ## WIP
@@ -119,12 +119,14 @@ echo $hostname >> /etc/hostname
 ## Initramfs
 
 ## ROOT PASSWORD ##
-passwd
+arch-chroot /mnt passwd
 
 ## BOOT LOADER ##
+## WIP: this is systemd-boot...change to grub for snapshots?
+arch-chroot /mnt bootctl install
 
 ## REBOOT ##
-exit
 umount -R /mnt
+cryptsetup luksClose $crypt
 confirm_y "Ready to reboot. Proceed?"
 reboot
