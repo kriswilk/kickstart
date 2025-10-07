@@ -81,13 +81,21 @@ swapon /mnt/swap/swapfile
 
 ## MIRRORS ##
 echo "CONFIGURING MIRRORS..."
-reflector --country CA --delay 1 --fastest 10 --sort rate --save /etc/pacman.d/mirrorlist --verbose
+reflector --country CA \
+          --delay 1 \
+          --fastest 10 \
+          --sort rate \
+          --save /etc/pacman.d/mirrorlist \
+          --verbose
 
 ## INSTALL ESSENTIAL PACKAGES ##
-pacstrap /mnt base linux linux-firmware vim intel-ucode
+pacman -Syy
+pacstrap /mnt base linux linux-firmware nano vim intel-ucode
 
 ## FSTAB ##
 genfstab -U /mnt >> /mnt/etc/fstab
+## WIP: need to remove subvolid from fstab?? or is it not put in there anymore?
+
 
 ## CHROOT ##
 arch-chroot /mnt
