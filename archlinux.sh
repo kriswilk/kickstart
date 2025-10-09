@@ -99,20 +99,17 @@ pacstrap -K /mnt base linux \
 genfstab -U /mnt >> /mnt/etc/fstab
 ## WIP: need to remove subvolid from fstab?? or is it not put in there anymore?
 
-## CHROOT ##
-arch-chroot /mnt
-
 ## TIME ##
 arch-chroot /mnt ln -sf /usr/share/zoneinfo/America/Toronto /etc/localtime
 arch-chroot /mnt hwclock --systohc
 
 ## LOCALE ##
-arch-chroot /mnt echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen
+echo "en_US.UTF-8 UTF-8" >> /mnt/etc/locale.gen
 arch-chroot /mnt locale-gen
-arch-chroot /mnt echo "LANG=en_US.UTF-8" > /etc/locale.conf
+echo "LANG=en_US.UTF-8" > /mnt/etc/locale.conf
 
 ## HOSTNAME ##
-arch-chroot /mnt echo $hostname > /etc/hostname
+echo $hostname > /mnt/etc/hostname
 
 ## Initramfs
 ## WIP add "encrypt" to hooks (between "block" and "filesystems") 
