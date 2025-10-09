@@ -1,19 +1,19 @@
 #!/bin/bash
 
 ## HELPERS ##
-function fail() { echo "$1"; exit 1; }
-function confirm_y() { read -p "$1 [Y/n]: " confirm && [[ $confirm == [nN] ]] && exit 1; }
-function confirm_n() { read -p "$1 [y/N]: " confirm && [[ $confirm == [yY] ]] || exit 1; }
+function fail() { echo -e "\e[0;31m$1\e[0m"; exit 1; }
+function notify() { echo -e "\n\e[1;33m$1\e[0m"; sleep 1; }
+function confirm_y() { read -p "$1 [Y/n]: " ans && [[ $ans == [nN] ]] && exit 1; }
+function confirm_n() { read -p "$1 [y/N]: " ans && [[ $ans == [yY] ]] || exit 1; }
 
-## TARGETS ##
 hostname=$1
-disk=$2
-disk_path="/dev/${disk}"
+disk="/dev/$2"
 
-## PRE-FLIGHT ##
-echo "PRE-FLIGHT CHECKS..."
-if [ ! -e $disk_path ]; then
-  fail "ERROR: Disk $disk_path does not exist. USAGE: ./archlinux.sh <hostname> <disk>"
+notify "PRE-FLIGHT CHECKS..."
+if [ $# -ne 2 ]; then
+  fail "ERROR: Missing input. Expected arguments are <hostname> <disk> (eg. ./script.sh thinkpad nvme0n1)"
+elif [ ! -e $disk ]; then
+  fail "ERROR: Disk $disk does not exist."
 elif ! cat /sys/firmware/efi/fw_platform_size | grep "64" &> /dev/null; then
   fail "ERROR: Not a UEFI system."
 elif ! ping -c 1 ping.archlinux.org &> /dev/null; then
@@ -22,69 +22,58 @@ elif ! timedatectl show | grep "NTPSynchronized=yes" &> /dev/null; then
   fail "ERROR: Clock requires synchronization."  
 fi
 
-## CONFIRM ##
-confirm_n "WARNING: Disk $disk_path will be completely erased. Proceed?"
+notify "CONFIRMATION..."
+confirm_n "WARNING: Disk $disk will be completely erased. Proceed?"
 
-## PARTITION ##
-echo "PARTITIONING..."
-# 1 GB EFI, remainder Linux filesystem
-sgdisk $disk_path -Z -n 1:0:1G -t 1:ef00 -N 2 -t 2:8300
-
-if [[ -e "${disk_path}1" && -e "${disk_path}2" ]]; then
-  part_efi="${disk_path}1"
-  part_btrfs="${disk_path}2"
-  crypt="${disk}2_crypt"
-elif [[ -e "${disk_path}p1" && -e "${disk_path}p2" ]]; then
-  part_efi="${disk_path}p1"
-  part_btrfs="${disk_path}p2"
-  crypt="${disk}p2_crypt"
+notify "PARTITIONING..."
+sgdisk $disk -Z -n 1:0:1G -t 1:ef00 -N 2 -t 2:8309
+if [[ -e "${disk}1" && -e "${disk}2" ]]; then
+  efi="${disk}1"
+  btrfs="${disk}2"
+elif [[ -e "${disk}p1" && -e "${disk}p2" ]]; then
+  efi="${disk}p1"
+  btrfs="${disk}p2"
 else
   fail "ERROR: Disk partition(s) missing."
 fi
 
-## ENCRYPT ##
-echo "ENCRYPTION..."
-cryptsetup luksFormat $part_btrfs
-cryptsetup open --type luks $part_btrfs $crypt
-crypt_path="/dev/mapper/${crypt}"
+notify "ENCRYPTION..."
+cryptsetup luksFormat $btrfs
+cryptsetup open --type luks $btrfs archlinux
+crypt="/dev/mapper/archlinux"
 
-## FORMAT ##
-echo "FORMATTING..."
-mkfs.fat -F 32 $part_efi
-mkfs.btrfs $crypt_path
+notify "FORMATTING..."
+mkfs.fat -F 32 $efi
+mkfs.btrfs $crypt
 
-## CREATE SUBVOLUMES ##
-echo "CREATING SUBVOLUMES..."
-mount $crypt_path /mnt
+notify "CREATING SUBVOLUMES..."
+mount $crypt /mnt
 btrfs subvolume create /mnt/{@,@home,@snapshots,@swap,@var_cache,@var_log,@var_tmp}
 umount /mnt
 
-## MOUNT ##
-echo "MOUNTING PARTITIONS / SUBVOLUMES"
+notify "MOUNTING PARTITIONS / SUBVOLUMES..."
 # mount root subvolume
-mount -o noatime,compress=zstd:1,subvol=@ $crypt_path /mnt
+mount -o noatime,compress=zstd:1,subvol=@ $crypt /mnt
 # create mount points
 mkdir -p /mnt/{efi,home,.snapshots,swap,var/cache,var/log,var/tmp}
 # mount partitions / subvolumes
-mount $part_efi /mnt/efi
-mount -o noatime,compress=zstd:1,subvol=@home $crypt_path /mnt/home
-mount -o noatime,compress=zstd:1,subvol=@snapshots $crypt_path /mnt/.snapshots
-mount -o noatime,compress=zstd:1,subvol=@swap $crypt_path /mnt/swap
-mount -o noatime,compress=zstd:1,subvol=@var_cache $crypt_path /mnt/var/cache
-mount -o noatime,compress=zstd:1,subvol=@var_log $crypt_path /mnt/var/log
-mount -o noatime,compress=zstd:1,subvol=@var_tmp $crypt_path /mnt/var/tmp
+mount $efi /mnt/efi
+mount -o noatime,compress=zstd:1,subvol=@home $crypt /mnt/home
+mount -o noatime,compress=zstd:1,subvol=@snapshots $crypt /mnt/.snapshots
+mount -o noatime,compress=zstd:1,subvol=@swap $crypt /mnt/swap
+mount -o noatime,compress=zstd:1,subvol=@var_cache $crypt /mnt/var/cache
+mount -o noatime,compress=zstd:1,subvol=@var_log $crypt /mnt/var/log
+mount -o noatime,compress=zstd:1,subvol=@var_tmp $crypt /mnt/var/tmp
 
-## SWAP FILE ##
-echo "CREATING SWAP FILE..."
+notify "CREATING SWAP FILE..."
 btrfs filesystem mkswapfile --size 16g --uuid clear /mnt/swap/swapfile
 swapon /mnt/swap/swapfile
 
-## MIRRORS ##
-echo "CONFIGURING MIRRORS..."
+notify "GENERATING MIRRORLIST..."
 reflector --country CA --delay 1 --fastest 10 --sort rate --save /etc/pacman.d/mirrorlist --verbose
 
-## INSTALL ESSENTIAL PACKAGES ##
 ## WIP: update packages first?
+notify "INSTALLING PACKAGES..."
 pacstrap -K /mnt base linux \
                  intel-ucode amd-ucode \
                  vim nano
@@ -95,39 +84,39 @@ pacstrap -K /mnt base linux \
                  # other packages: vim nano
 ## WIP: will amd/intel microcode coexist??
 
-## FSTAB ##
-genfstab -U /mnt >> /mnt/etc/fstab
+notify "GENERATING FSTAB..."
+genfstab -U /mnt > /mnt/etc/fstab
 ## WIP: need to remove subvolid from fstab?? or is it not put in there anymore?
 
-## TIME ##
+notify "SETTING TIME ZONE..."
 arch-chroot /mnt ln -sf /usr/share/zoneinfo/America/Toronto /etc/localtime
 arch-chroot /mnt hwclock --systohc
 
-## LOCALE ##
+notify "SETTING LOCALE..."
 echo "en_US.UTF-8 UTF-8" >> /mnt/etc/locale.gen
 arch-chroot /mnt locale-gen
 echo "LANG=en_US.UTF-8" > /mnt/etc/locale.conf
 
-## HOSTNAME ##
+notify "SETTING HOSTNAME..."
 echo $hostname > /mnt/etc/hostname
 
-## Initramfs
+notify "RECREATING THE INITRAMFS IMAGE..."
 ## WIP add "encrypt" to hooks (between "block" and "filesystems") 
 arch-chroot /mnt nano /etc/mkinitcpio.conf
 arch-chroot /mnt mkinitcpio -P
 
-## ROOT PASSWORD ##
+notify "SET ROOT PASSWORD..."
 arch-chroot /mnt passwd
 
-## BOOT LOADER ##
+notify "INSTALL BOOTLOADER..."
 ## WIP: this is systemd-boot...change to grub for snapshots?
 #arch-chroot /mnt bootctl install
 
-## ENABLE SERVICES ##
+notify "ENABLE SERVICES..."
 ## WIP.....
 
-## REBOOT ##
-#umount -R /mnt
-#cryptsetup close $crypt
-#confirm_y "Ready to reboot. Proceed?"
-#reboot
+notify "REBOOT..."
+confirm_y "Ready to reboot. Proceed?"
+umount -R /mnt
+cryptsetup close $crypt
+reboot
