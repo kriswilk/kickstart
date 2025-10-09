@@ -45,7 +45,7 @@ fi
 ## ENCRYPT ##
 echo "ENCRYPTION..."
 cryptsetup luksFormat $part_btrfs
-cryptsetup luksOpen $part_btrfs $crypt
+cryptsetup open --type luks $part_btrfs $crypt
 crypt_path="/dev/mapper/${crypt}"
 
 ## FORMAT ##
@@ -86,7 +86,8 @@ reflector --country CA --delay 1 --fastest 10 --sort rate --save /etc/pacman.d/m
 ## INSTALL ESSENTIAL PACKAGES ##
 ## WIP: update packages first?
 pacstrap -K /mnt base linux \
-                 intel-ucode amd-ucode \                 
+                 intel-ucode amd-ucode \
+                 vim nano
                  # userspace utils for filesystems:
                  # raid/lvm:
                  # firmware: linux-firmware linux-firmware-marvell \
@@ -113,20 +114,23 @@ arch-chroot /mnt echo "LANG=en_US.UTF-8" > /etc/locale.conf
 ## HOSTNAME ##
 arch-chroot /mnt echo $hostname > /etc/hostname
 
-## NETWORK CONFIG ##
-## WIP
-
 ## Initramfs
+## WIP add "encrypt" to hooks (between "block" and "filesystems") 
+arch-chroot /mnt nano /etc/mkinitcpio.conf
+arch-chroot /mnt mkinitcpio -P
 
 ## ROOT PASSWORD ##
 arch-chroot /mnt passwd
 
 ## BOOT LOADER ##
 ## WIP: this is systemd-boot...change to grub for snapshots?
-arch-chroot /mnt bootctl install
+#arch-chroot /mnt bootctl install
+
+## ENABLE SERVICES ##
+## WIP.....
 
 ## REBOOT ##
-umount -R /mnt
-cryptsetup luksClose $crypt
-confirm_y "Ready to reboot. Proceed?"
-reboot
+#umount -R /mnt
+#cryptsetup close $crypt
+#confirm_y "Ready to reboot. Proceed?"
+#reboot
