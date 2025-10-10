@@ -6,15 +6,22 @@ function notify() { echo -e "\n\e[1;33m$1\e[0m"; sleep 1; }
 function confirm_y() { read -p "$1 [Y/n]: " ans && [[ $ans == [nN] ]] && exit 1; }
 function confirm_n() { read -p "$1 [y/N]: " ans && [[ $ans == [yY] ]] || exit 1; }
 
-hostname=$1
-disk="/dev/$2"
+notify "HOSTNAME..."
+read -p "Enter the new hostname: " hostname
+if [[ ! $hostname ]]; then
+  fail "ERROR: Hostname invalid."
+fi
+
+notify "TARGET DISK..."
+lsblk
+read -p "Enter the target disk: " disk
+disk="/dev/${disk}"
+if [[ $disk == "/dev/" || ! -e $disk ]]; then
+  fail "ERROR: Target disk invalid."
+fi
 
 notify "PRE-FLIGHT CHECKS..."
-if [[ $# != 2 ]]; then
-  fail "ERROR: Missing input. Expected arguments are <hostname> <disk> (eg. ./script.sh thinkpad nvme0n1)"
-elif [[ ! -e $disk ]]; then
-  fail "ERROR: Disk $disk does not exist."
-elif ! cat /sys/firmware/efi/fw_platform_size | grep "64" &> /dev/null; then
+if ! cat /sys/firmware/efi/fw_platform_size | grep "64" &> /dev/null; then
   fail "ERROR: Not a UEFI system."
 elif ! ping -c 1 ping.archlinux.org &> /dev/null; then
   fail "ERROR: No network connectivity."
@@ -23,7 +30,7 @@ elif ! timedatectl show | grep "NTPSynchronized=yes" &> /dev/null; then
 fi
 
 notify "CONFIRMATION..."
-confirm_n "WARNING: Disk $disk will be completely erased. Proceed?"
+confirm_n "Disk $disk will be completely erased. Proceed?"
 
 notify "PARTITIONING..."
 sgdisk $disk -Z -n 1:0:1G -t 1:ef00 -N 2 -t 2:8309
