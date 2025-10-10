@@ -10,9 +10,9 @@ hostname=$1
 disk="/dev/$2"
 
 notify "PRE-FLIGHT CHECKS..."
-if [ $# -ne 2 ]; then
+if [[ $# != 2 ]]; then
   fail "ERROR: Missing input. Expected arguments are <hostname> <disk> (eg. ./script.sh thinkpad nvme0n1)"
-elif [ ! -e $disk ]; then
+elif [[ ! -e $disk ]]; then
   fail "ERROR: Disk $disk does not exist."
 elif ! cat /sys/firmware/efi/fw_platform_size | grep "64" &> /dev/null; then
   fail "ERROR: Not a UEFI system."
