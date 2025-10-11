@@ -81,14 +81,79 @@ reflector --country CA --delay 1 --fastest 10 --sort rate --save /etc/pacman.d/m
 
 ## WIP: update packages first?
 notify "INSTALLING PACKAGES..."
-pacstrap -K /mnt base linux \
-                 intel-ucode amd-ucode \
-                 vim nano
-                 # userspace utils for filesystems:
-                 # raid/lvm:
-                 # firmware: linux-firmware linux-firmware-marvell \
-                 
-                 # other packages: vim nano
+packages=(
+  base linux linux-firmware \
+  intel-ucode amd-ucode \
+  btrfs-progs dosfstools exfatprogs e2fsprogs ntfs-3g udftools \
+  sof-firmware alsa-firmware \
+  networkmanager iwd
+  vim nano
+# raid/lvm:
+# firmware: linux-firmware linux-firmware-marvell \
+# other packages: git base-devel
+# efibootmgr grub grub-btrfs
+# pipewire pipewire-alsa pipewire-pulse pipewire-jack
+# reflector openssh man 
+# bash-completion
+# fastfetch
+    base base-devel linux-firmware
+    linux-firmware-qlogic
+    linux linux-headers nvidia nvidia-settings
+    intel-ucode
+    networkmanager
+    ufw
+    pipewire pipewire-alsa pipewire-jack pipewire-pulse wireplumber easyeffects alsa-utils
+    git htop reflector deluge vlc meld speedcrunch tmux okteta sudo
+    # firefox    <-- I use [$ yay -S librewolf-bin] now.
+    fastfetch
+    gimp inkscape
+    steam wine winetricks wine-mono wine-gecko
+    neovim neovide ttf-hack-nerd
+    gvim mousepad # For when neovim doesn't like me.
+    python tk python-pyperclip
+    wl-clipboard
+    flameshot
+    ntfs-3g dosfstools mtools gparted
+    gvfs
+
+    # Install KDE.
+    plasma
+    xorg
+    kdialog
+    konsole # Terminal.
+    kate # Text editor i never use. NOTE: This also installs kwrite.
+    dolphin dolphin-plugins kio-admin
+    ark p7zip unrar # Archive management tools.
+    kcharselect # Character selector.
+    kcalc # Calculator.
+    gwenview # Image viewer.
+    kcolorchooser # Color picker.
+    filelight # Disk space usage.
+    spectacle # Screenshot capture.
+    okular # PDF and comic viewer.
+    gparted # Gnomes "GParted" is better (included with manjaro kde btw) than "KDE Partition Manager": partitionmanager
+    gnome-disk-utility # Gnomes other partition manager, that has a handy "Restore Disk Image..." feature that i use to burn iso's to usb instead of using $ dd command.
+    ksystemlog # System log viewer.
+    gsmartcontrol # Harddisk health inspector.
+    plasma-systemmonitor # Task Manager.
+    plasma-desktop plasma-nm
+
+    kwallet kwalletmanager # Needed by KDE to encrypt credentials so they aren't plain text.
+    kwallet-pam # Allows for auto-unlock once configured.
+    libsecret # Allows GTK applications (like Chrome) to interface with KDE Wallet.
+
+    # gnome-keyring # Only needed if you use GNOME apps that rely on the GNOME keyring.
+    # seahorse # GUI for GNOME keyring.
+
+    # kaccounts-integration # For online account management (Google, Nextcloud, OwnCloud, etc.) in KDE.
+
+    egl-wayland plasma-wayland-protocols # Wayland.
+
+    sddm # Display manager.
+
+    grub efibootmgr os-prober # Boot loader.
+)
+pacstrap -K /mnt "${packages[@]}"
 ## WIP: will amd/intel microcode coexist??
 
 notify "GENERATING FSTAB..."
@@ -108,12 +173,12 @@ notify "SETTING HOSTNAME..."
 echo $hostname > /mnt/etc/hostname
 
 notify "RECREATING THE INITRAMFS IMAGE..."
-## WIP add "encrypt" to hooks (between "block" and "filesystems") 
-arch-chroot /mnt nano /etc/mkinitcpio.conf
+sed -i "s/block filesystems/block encrypt filesystems/" /mnt/etc/mkinitcpio.conf
 arch-chroot /mnt mkinitcpio -P
 
-notify "SET ROOT PASSWORD..."
+notify "CONFIGURE USERS..."
 arch-chroot /mnt passwd
+# WIP create other users
 
 notify "INSTALL BOOTLOADER..."
 ## WIP: this is systemd-boot...change to grub for snapshots?
