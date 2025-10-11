@@ -17,7 +17,7 @@ lsblk
 read -p "Enter the target disk: " disk
 disk="/dev/${disk}"
 if [[ $disk == "/dev/" || ! -e $disk ]]; then
-  fail "ERROR: Target disk invalid."
+  fail "ERROR: Target disk not found."
 fi
 
 notify "PRE-FLIGHT CHECKS..."
@@ -26,7 +26,7 @@ if ! cat /sys/firmware/efi/fw_platform_size | grep "64" &> /dev/null; then
 elif ! ping -c 1 ping.archlinux.org &> /dev/null; then
   fail "ERROR: No network connectivity."
 elif ! timedatectl show | grep "NTPSynchronized=yes" &> /dev/null; then
-  fail "ERROR: Clock requires synchronization."  
+  fail "ERROR: Clock requires synchronization." 
 fi
 
 notify "CONFIRMATION..."
@@ -36,41 +36,41 @@ notify "PARTITIONING..."
 sgdisk $disk -Z -n 1:0:1G -t 1:ef00 -N 2 -t 2:8309
 if [[ -e "${disk}1" && -e "${disk}2" ]]; then
   efi="${disk}1"
-  btrfs="${disk}2"
+  luks="${disk}2"
 elif [[ -e "${disk}p1" && -e "${disk}p2" ]]; then
   efi="${disk}p1"
-  btrfs="${disk}p2"
+  luks="${disk}p2"
 else
   fail "ERROR: Disk partition(s) missing."
 fi
 
 notify "ENCRYPTION..."
-cryptsetup luksFormat $btrfs
-cryptsetup open --type luks $btrfs archlinux
-crypt="/dev/mapper/archlinux"
+cryptsetup luksFormat $luks
+cryptsetup open --type luks $luks archlinux
+btrfs="/dev/mapper/archlinux"
 
 notify "FORMATTING..."
 mkfs.fat -F 32 $efi
-mkfs.btrfs $crypt
+mkfs.btrfs $btrfs
 
 notify "CREATING SUBVOLUMES..."
-mount $crypt /mnt
+mount $btrfs /mnt
 btrfs subvolume create /mnt/{@,@home,@snapshots,@swap,@var_cache,@var_log,@var_tmp}
 umount /mnt
 
 notify "MOUNTING PARTITIONS / SUBVOLUMES..."
 # mount root subvolume
-mount -o noatime,compress=zstd:1,subvol=@ $crypt /mnt
+mount -o noatime,compress=zstd:1,subvol=@ $btrfs /mnt
 # create mount points
 mkdir -p /mnt/{efi,home,.snapshots,swap,var/cache,var/log,var/tmp}
 # mount partitions / subvolumes
 mount $efi /mnt/efi
-mount -o noatime,compress=zstd:1,subvol=@home $crypt /mnt/home
-mount -o noatime,compress=zstd:1,subvol=@snapshots $crypt /mnt/.snapshots
-mount -o noatime,compress=zstd:1,subvol=@swap $crypt /mnt/swap
-mount -o noatime,compress=zstd:1,subvol=@var_cache $crypt /mnt/var/cache
-mount -o noatime,compress=zstd:1,subvol=@var_log $crypt /mnt/var/log
-mount -o noatime,compress=zstd:1,subvol=@var_tmp $crypt /mnt/var/tmp
+mount -o noatime,compress=zstd:1,subvol=@home $btrfs /mnt/home
+mount -o noatime,compress=zstd:1,subvol=@snapshots $btrfs /mnt/.snapshots
+mount -o noatime,compress=zstd:1,subvol=@swap $btrfs /mnt/swap
+mount -o noatime,compress=zstd:1,subvol=@var_cache $btrfs /mnt/var/cache
+mount -o noatime,compress=zstd:1,subvol=@var_log $btrfs /mnt/var/log
+mount -o noatime,compress=zstd:1,subvol=@var_tmp $btrfs /mnt/var/tmp
 
 notify "CREATING SWAP FILE..."
 btrfs filesystem mkswapfile --size 16g --uuid clear /mnt/swap/swapfile
@@ -190,5 +190,5 @@ notify "ENABLE SERVICES..."
 notify "REBOOT..."
 confirm_y "Ready to reboot. Proceed?"
 umount -R /mnt
-cryptsetup close $crypt
+cryptsetup close $luks
 reboot
