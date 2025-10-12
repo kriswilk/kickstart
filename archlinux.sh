@@ -82,38 +82,35 @@ reflector --country CA --delay 1 --fastest 10 --sort rate --save /etc/pacman.d/m
 ## WIP: update packages first?
 notify "INSTALLING PACKAGES..."
 packages=(
-  base linux linux-firmware \
-  intel-ucode amd-ucode \
-  btrfs-progs dosfstools exfatprogs e2fsprogs ntfs-3g udftools \
-  sof-firmware alsa-firmware \
-  networkmanager iwd
-  vim nano
-# raid/lvm:
-# firmware: linux-firmware linux-firmware-marvell \
-# other packages: git base-devel
+  base base-devel linux linux-firmware linux-headers # basics
+  amd-ucode intel-ucode # microcode
+  grub efibootmgr os-prober # bootloader
+  git htop reflector tmux fastfetch # miscellaneous
+  btrfs-progs dosfstools exfatprogs e2fsprogs ntfs-3g udftools # filesystems
+  # mtools gparted gptfdisk ???????????????????????
+  networkmanager iwd ufw # networking
+  sof-firmware alsa-firmware pipewire pipewire-alsa pipewire-pulse pipewire-jack wireplumber easyeffects alsa-utils # audio
+  firefox # browser
+  vim nano # editor
+  rust uv # programming
+  docker # virtualization
+  gimp inkscape # graphics
+  freecad # cad
+  steam # gaming
+
 # efibootmgr grub grub-btrfs
-# pipewire pipewire-alsa pipewire-pulse pipewire-jack
 # reflector openssh man 
 # bash-completion
 # fastfetch
-    base base-devel linux-firmware
-    linux-firmware-qlogic
-    linux linux-headers nvidia nvidia-settings
-    intel-ucode
-    networkmanager
-    ufw
-    pipewire pipewire-alsa pipewire-jack pipewire-pulse wireplumber easyeffects alsa-utils
-    git htop reflector deluge vlc meld speedcrunch tmux okteta sudo
-    # firefox    <-- I use [$ yay -S librewolf-bin] now.
-    fastfetch
-    gimp inkscape
-    steam wine winetricks wine-mono wine-gecko
+    nvidia nvidia-settings
+    deluge vlc meld speedcrunch okteta
+    wine winetricks wine-mono wine-gecko
     neovim neovide ttf-hack-nerd
     gvim mousepad # For when neovim doesn't like me.
     python tk python-pyperclip
     wl-clipboard
     flameshot
-    ntfs-3g dosfstools mtools gparted
+    
     gvfs
 
     # Install KDE.
@@ -150,8 +147,6 @@ packages=(
     egl-wayland plasma-wayland-protocols # Wayland.
 
     sddm # Display manager.
-
-    grub efibootmgr os-prober # Boot loader.
 )
 pacstrap -K /mnt "${packages[@]}"
 ## WIP: will amd/intel microcode coexist??
