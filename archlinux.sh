@@ -82,34 +82,126 @@ reflector --country CA --delay 1 --fastest 10 --sort rate --save /etc/pacman.d/m
 ## WIP: update packages first?
 notify "INSTALLING PACKAGES..."
 packages=(
-  base base-devel linux linux-firmware linux-headers # basics
-  amd-ucode intel-ucode # microcode
-  grub efibootmgr os-prober # bootloader
-  git htop reflector tmux fastfetch # miscellaneous
-  btrfs-progs dosfstools exfatprogs e2fsprogs ntfs-3g udftools # filesystems
-  # mtools gparted gptfdisk ???????????????????????
-  networkmanager iwd ufw # networking
-  sof-firmware alsa-firmware pipewire pipewire-alsa pipewire-pulse pipewire-jack wireplumber easyeffects alsa-utils # audio
+  # CORE PACKAGES, DRIVERS
+  # minimal
+  base
+  base-devel
+  linux
+  linux-firmware
+  linux-headers
+  # microcode
+  amd-ucode
+  intel-ucode
+  # bootloader
+  grub
+  grub-btrfs
+  efibootmgr
+  os-prober
+  # filesystem tools
+  btrfs-progs
+  dosfstools
+  exfatprogs
+  e2fsprogs
+  ntfs-3g
+  udftools
+  ##### mtools gparted gptfdisk ???????????????????????
+  # network
+  networkmanager
+  iwd
+  ufw
+  tailscale
+  wireshark-cli
+  wireshark-gui
+  qbittorrent
+  
+  # sound
+  sof-firmware # ??????
+  alsa-firmware # ??????
+  pipewire # ??????
+  pipewire-alsa # ??????
+  pipewire-pulse # ??????
+  pipewire-jack # ??????
+  wireplumber # ??????
+  easyeffects # ??????
+  alsa-utils # ??????
+
+  
+  # basic tools
+  git rsync rclone htop reflector tmux fastfetch
+  
+  # fonts
+  ttf-hack-nerd
+  
+  # 
   firefox # browser
-  vim nano # editor
+  nano vim # editor
   rust uv # programming
   docker # virtualization
-  gimp inkscape # graphics
-  freecad # cad
-  steam # gaming
+  
+  # MULTIMEDIA
+  # audio
+  audacity
+  # photo / illustration
+  gimp
+  inkscape
+  krita
+  darktable
+  flameshot
+  # video
+  vlc
+  mkvtoolnix-cli
+  mkvtoolnix-gui
+  # 3d / cad
+  blender
+  freecad
+  kicad
+  prusa-slicer
+  # office
+  libreoffice
+  
+  # ENTERTAINMENT
+  # gaming
+  steam
+  prismlauncher
+  jre8-openjdk
+  jre17-openjdk
+  jre21-openjdk
 
-# efibootmgr grub grub-btrfs
-# reflector openssh man 
+  # shell
+  # gui
+  # terminal
+  
+# AUR LIST
+stremio
+naps2
+bcompare
+bcompare-kde6 ?????????
+visual-studio-code-bin
+imhex
+hexcurse
+ipscan
+rustdesk
+pandoc-bin
+
+# openssh man 
 # bash-completion
-# fastfetch
+    # fonts
+    # onedrive, gdrive
+    # fineprint
+    # renamer
+    # flatpak?
+    # segger j-link
+    # jdownloader2
+    # rufus
+
+    
     nvidia nvidia-settings
-    deluge vlc meld speedcrunch okteta
+    deluge meld speedcrunch okteta
     wine winetricks wine-mono wine-gecko
-    neovim neovide ttf-hack-nerd
+    
     gvim mousepad # For when neovim doesn't like me.
     python tk python-pyperclip
     wl-clipboard
-    flameshot
     
     gvfs
 
