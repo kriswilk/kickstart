@@ -1,13 +1,18 @@
 #!/bin/bash
 
+## COLOURS ##
+C_OFF='\e[0m'
+C_YEL='\e[1;33m'
+C_RED='\e[0;31m'
+
 ## HELPERS ##
-function notify() { echo -e "\n\e[1;33m$1\e[0m"; sleep 1; }
-function fail() { echo -e "\e[0;31mERROR: $1\e[0m"; exit 1; }
+function notify() { echo -e "\n${C_YEL}${1}${C_OFF}"; sleep 1; }
+function fail() { echo -e "${C_RED}ERROR: ${1}${C_OFF}"; exit 1; }
 
 notify "HOSTNAME..."
 read -p "Enter the new hostname: " host
 if [[ ! $host ]]; then
-  fail "Hostname invalid."
+  fail "Hostname required."
 fi
 
 notify "TARGET DISK..."
@@ -122,9 +127,16 @@ sed -i "/GRUB_ENABLE_CRYPTODISK=/c\GRUB_ENABLE_CRYPTODISK=y" /mnt/etc/default/gr
 arch-chroot /mnt grub-install --target=x86_64-efi --efi-directory=/efi --bootloader-id=GRUB
 arch-chroot /mnt grub-mkconfig -o /boot/grub/grub.cfg
 
-notify "CONFIGURE USERS..."
+notify "SET ROOT PASSWORD..."
 arch-chroot /mnt passwd
+
+notify "CREATE USERS..."
+arch-chroot /mnt useradd -m -G wheel kris
+arch-chroot /mnt chfn -f "Kris Wilk" kris
+arch-chroot /mnt useradd -m guest
+arch-chroot /mnt chfn -f "Guest User" guest
 # WIP create regular users
+# WIP enable whel group for sudo
 
 notify "CONFIGURE NETWORKING..."
 cat > /mnt/etc/NetworkManager/conf.d/wifi_backend.conf << EOF
