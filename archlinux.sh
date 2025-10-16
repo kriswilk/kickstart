@@ -1,37 +1,47 @@
 #!/bin/bash
 
 ## HELPERS ##
-function fail() { echo -e "\e[0;31m$1\e[0m"; exit 1; }
 function notify() { echo -e "\n\e[1;33m$1\e[0m"; sleep 1; }
-function confirm_y() { read -p "$1 [Y/n]: " ans && [[ $ans == [nN] ]] && exit 1; }
-function confirm_n() { read -p "$1 [y/N]: " ans && [[ $ans == [yY] ]] || exit 1; }
+function fail() { echo -e "\e[0;31mERROR: $1\e[0m"; exit 1; }
 
 notify "HOSTNAME..."
 read -p "Enter the new hostname: " host
 if [[ ! $host ]]; then
-  fail "ERROR: Hostname invalid."
+  fail "Hostname invalid."
 fi
 
 notify "TARGET DISK..."
 lsblk
-read -p "Enter the target disk: " disk
-disk="/dev/$disk"
+read -p "Enter the target disk: "
+disk="/dev/$REPLY"
 if [[ $disk == "/dev/" || ! -e $disk ]]; then
-  fail "ERROR: Target disk not found."
+  fail "Target disk not found."
 fi
 
 notify "PRE-FLIGHT CHECKS..."
-if ! cat /sys/firmware/efi/fw_platform_size | grep "64" &> /dev/null; then
-  fail "ERROR: Not a UEFI system."
+if ! cat /sys/firmware/efi/fw_platform_size | grep 64 &> /dev/null; then
+  fail "Not a UEFI system."
 elif ! ping -c 1 ping.archlinux.org &> /dev/null; then
-  fail "ERROR: No network connectivity."
+  fail "No network connectivity."
 elif ! timedatectl show | grep "NTPSynchronized=yes" &> /dev/null; then
-  fail "ERROR: Clock requires synchronization." 
+  fail "Clock requires synchronization." 
 fi
 
-notify "WIPING DISK..."
-confirm_n "Filesystem signatures on $disk will be wiped. Proceed?"
-wipefs -a $disk
+notify "WIPING FILESYSTEMS..."
+read -p "All filesystems on $disk will be erased. Type YES to proceed: "
+if [[ $REPLY == YES ]]; then
+  wipefs -a $disk
+else
+  fail "Aborted without changes."
+fi
+
+notify "WIPING DATA (OPTIONAL)..."
+read -p "Additionally fill the disk with random data? Type YES if desired: "
+if [[ $REPLY == YES ]]; then
+  cryptsetup open --type plain --key-file /dev/urandom --sector-size 4096 $disk target
+  dd if=/dev/zero of=/dev/mapper/target status=progress bs=1M
+  cryptsetup close target
+fi
 
 notify "PARTITIONING..."
 sgdisk $disk --new 1:0:1G    --typecode 1:ef00 --change-name 1:efi \
