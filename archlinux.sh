@@ -33,20 +33,33 @@ elif ! timedatectl show | grep "NTPSynchronized=yes" &> /dev/null; then
 fi
 
 notify "WIPING FILESYSTEMS..."
-read -p "All filesystems on $disk will be erased. Type YES to proceed: "
+read -p "Filesystem signatures on $disk will be erased. Type YES to proceed: "
 if [[ $REPLY == YES ]]; then
   wipefs -a $disk
 else
   fail "Aborted without changes."
 fi
 
-notify "WIPING DATA (OPTIONAL)..."
-read -p "Additionally fill the disk with random data? Type YES if desired: "
-if [[ $REPLY == YES ]]; then
-  cryptsetup open --type plain --key-file /dev/urandom --sector-size 4096 $disk target
-  dd if=/dev/zero of=/dev/mapper/target status=progress bs=1M
-  cryptsetup close target
-fi
+notify "SECURE ERASE..."
+echo "To securely and completely wipe the disk, exit and follow the steps below."
+echo "
+NVMe:
+nvme id-ctrl $disk -H | grep -E 'Format |Crypto Erase|Sanitize
+nvme sanitize $disk -a <start-crypto-erase | start-block-erase>
+nvme sanitize-log $disk
+
+SATA:
+hdparm -I $disk
+hdparm --user-master u --security-set-pass PasSWorD $disk
+hdparm --user-master u --security-erase PasSWorD $disk
+hdparm --sanitize-status $disk
+
+Random Fill:
+cryptsetup open --type plain --key-file /dev/urandom --sector-size 4096 $disk target
+dd if=/dev/zero of=/dev/mapper/target bs=1M status=progress
+cryptsetup close target
+"
+read -s -p "Press Enter to continue..."
 
 notify "PARTITIONING..."
 sgdisk $disk --new 1:0:1G    --typecode 1:ef00 --change-name 1:efi \
@@ -103,6 +116,7 @@ pacstrap -K /mnt base linux linux-firmware \
                  btrfs-progs dosfstools \
                  networkmanager iwd openssh \
                  grub efibootmgr
+# WIP OTHER PKGS??? base-devel bash-completion cryptsetup htop man-db mlocate neovim pacman-contrib pkgfile reflector sudo terminus-font tmux
 
 notify "GENERATING FSTAB..."
 genfstab -U /mnt > /mnt/etc/fstab
@@ -133,12 +147,16 @@ notify "SET ROOT PASSWORD..."
 arch-chroot /mnt passwd
 
 notify "CREATE USERS..."
+# sed -i "s/# %wheel ALL=(ALL:ALL) ALL/%wheel ALL=(ALL:ALL) ALL/" /mnt/etc/sudoers
 arch-chroot /mnt useradd -m -G wheel kris
 arch-chroot /mnt chfn -f "Kris Wilk" kris
 arch-chroot /mnt useradd -m guest
 arch-chroot /mnt chfn -f "Guest User" guest
 # WIP create regular users
-# WIP enable whel group for sudo
+# WIP enable wheel group for sudo
+
+# WIP Set a system-wide default editor (example: neovim) ...
+# WIP echo "EDITOR=nvim" > /etc/environment && echo "VISUAL=nvim" >> /etc/environment
 
 notify "CONFIGURE NETWORKING..."
 cat > /mnt/etc/NetworkManager/conf.d/wifi_backend.conf << EOF
