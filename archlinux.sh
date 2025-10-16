@@ -50,14 +50,16 @@ fi
 
 notify "PARTITIONING..."
 sgdisk $disk --new 1:0:1G    --typecode 1:ef00 --change-name 1:efi \
-             --largest-new 2 --typecode 2:8309 --change-name 2:luks_system
+             --largest-new 2 --typecode 2:8309 --change-name 2:luks_root
 efi="/dev/disk/by-partlabel/efi"
-luks="/dev/disk/by-partlabel/luks_system"
+luks="/dev/disk/by-partlabel/luks_root"
 
 notify "ENCRYPTION..."
+# "--pbkdf=pbkdf2" for GRUB compatibility
 cryptsetup luksFormat --pbkdf=pbkdf2 $luks
-cryptsetup open $luks system
-btrfs="/dev/mapper/system"
+# "--allow-discards" enables TRIM
+cryptsetup open --allow-discards --persistent $luks root
+btrfs="/dev/mapper/root"
 
 notify "FORMATTING..."
 mkfs.fat -F 32 $efi
