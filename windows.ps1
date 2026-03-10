@@ -10,7 +10,7 @@ $packages = @(
     "Git.Git",
     "AutoHotkey.AutoHotkey",
     "Microsoft.OneDrive",
-    "Bitwarden.Bitwarden",
+    "9NZWS5X28P0J", #.......................... 1password
 
     # browser
     "Google.Chrome",
